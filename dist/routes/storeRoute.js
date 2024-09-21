@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const asyncHandler_1 = require("../utils/asyncHandler");
+const storeController_1 = require("../controller/storeController");
+const multer_1 = require("../utils/multer");
+const storeRoute = (0, express_1.Router)();
+storeRoute.route("/createStore").post(multer_1.upload.single("image"), authMiddleware_1.VerifyToken, authMiddleware_1.CheckRole, (0, asyncHandler_1.AsyncErrorHandler)(storeController_1.CreateStoreHandler));
+storeRoute.route("/editStore/:id").put(multer_1.upload.single("image"), authMiddleware_1.VerifyToken, authMiddleware_1.CheckRole, (0, asyncHandler_1.AsyncErrorHandler)(storeController_1.EditStoreHandler));
+storeRoute.route("/getStore").get(authMiddleware_1.VerifyToken, authMiddleware_1.CheckRole, (0, asyncHandler_1.AsyncErrorHandler)(storeController_1.GetStoreHandler));
+exports.default = storeRoute;

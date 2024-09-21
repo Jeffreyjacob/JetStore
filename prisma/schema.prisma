@@ -1,0 +1,152 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SELLER
+  BUYER
+}
+
+enum Category {
+ CLOTHIES
+ ACCESSERIES
+ SHOES
+ BAGS
+}
+
+enum OrderStatus {
+  PLACED
+  PAID
+  SHIPPED
+  DELIEVERED
+  CANCELED
+}
+
+model User {
+  id Int @id @default(autoincrement())
+  fullname String
+  email String
+  password String
+  role Role @default(BUYER)
+  profilePicture String?
+  resetToken String? 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  address Address[]
+  product Product[]
+  store Store[]
+  reviews Review[]
+  cart CartItem[]
+  order Orders[]
+}
+
+model Address {
+  id Int @id @default(autoincrement())
+  lineOne String
+  lineTwo String?
+  city String
+  country String
+  userId Int
+  user  User @relation(fields: [userId],references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Store {
+   id Int @id @default(autoincrement())
+   storeName String
+   storeDescription String
+   storeImage String
+   storeOwnerId Int
+   storeOwner User @relation(fields: [storeOwnerId],references: [id])
+   product Product[]
+}
+
+model Review {
+  id Int @id @default(autoincrement())
+  reviewText String
+  productId Int
+  product Product @relation(fields: [productId],references: [id])
+  userId Int
+  user User @relation(fields: [userId],references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id Int @id @default(autoincrement())
+  name String
+  description String
+  price Decimal
+  quantityAvaliable Int
+  color String[]
+  images String[]
+  size String[]
+  category Category 
+  userId Int
+  user User @relation(fields: [userId],references: [id])
+  storeId Int
+  store Store @relation(fields: [storeId],references: [id])
+  reviews Review[]
+  cart CartItem[]
+  order OrderProduct[]
+}
+
+model CartItem {
+  id Int @id @default(autoincrement())
+  productId Int
+  product Product @relation(fields: [productId],references: [id])
+  quantity Int
+  userId Int
+  selectedSize String
+  selectedColor String
+  user User @relation(fields: [userId],references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Orders {
+  id Int @id @default(autoincrement())
+  buyerId Int
+  buyer User @relation(fields: [buyerId],references: [id])
+  address String
+  netAmount Int?
+  status OrderStatus @default(PLACED)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  OrderStatus OrderEventStatus[]
+  Product OrderProduct[]
+}
+
+model OrderProduct {
+  id Int @id @default(autoincrement())
+  orderId Int
+  Order Orders @relation(fields: [orderId],references: [id])
+  productId Int
+  product Product @relation(fields: [productId],references: [id])
+  quantity Int
+  ProductOwner Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model OrderEventStatus {
+  id Int @id @default(autoincrement())
+  orderId Int
+  Order Orders @relation(fields: [orderId],references: [id])
+  status OrderStatus @default(PLACED)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

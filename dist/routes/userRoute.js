@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const asyncHandler_1 = require("../utils/asyncHandler");
+const userController_1 = require("../controller/userController");
+const multer_1 = require("../utils/multer");
+const userRoute = (0, express_1.Router)();
+userRoute.route("/authUser").get(authMiddleware_1.VerifyToken, (0, asyncHandler_1.AsyncErrorHandler)(userController_1.AuthUserHandler));
+userRoute.route("/updateUserProfile").put(multer_1.upload.single("image"), authMiddleware_1.VerifyToken, (0, asyncHandler_1.AsyncErrorHandler)(userController_1.UpdateUserProfile));
+userRoute.route("/addAddress").post(authMiddleware_1.VerifyToken, (0, asyncHandler_1.AsyncErrorHandler)(userController_1.AddAddressHandler));
+userRoute.route("/removeAddress/:id").delete(authMiddleware_1.VerifyToken, (0, asyncHandler_1.AsyncErrorHandler)(userController_1.RemoveAddressHandler));
+exports.default = userRoute;
