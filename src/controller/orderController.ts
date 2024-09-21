@@ -56,15 +56,45 @@ export const stripeWebookHandler = async (req:Request,res:Response)=>{
     }
 
     if(event.type === "checkout.session.completed"){
-        const order = await prismaClient.orders.update({
-            where:{
-                id:+event.data.object.metadata?.orderId!
-            },
-            data:{
-              status:OrderStatus.PAID
+        const session = event.data.object
+        const productDetail = JSON.parse(session.metadata?.productDetails!)
+        try {
+            // Iterate through the productDetails array and update each product's quantity
+            for (const { productId, quantity } of productDetail) {
+                // Find the product and reduce its quantity
+                const product = await prismaClient.product.findUnique({
+                    where: {
+                        id: productId
+                    }
+                });
+
+                if (product) {
+                    await prismaClient.product.update({
+                        where: {
+                            id: productId
+                        },
+                        data: {
+                            quantityAvaliable: product.quantityAvaliable - quantity
+                        }
+                    });
+                }
             }
-        })
-        res.status(200).json()
+
+            // Update the order status to PAID
+            await prismaClient.orders.update({
+                where: {
+                    id:+event.data.object.metadata?.orderId!
+                },
+                data: {
+                    status: OrderStatus.PAID
+                }
+            });
+
+            res.status(200).json();
+        } catch (error: any) {
+            console.log(error);
+            res.status(500).json(`Error updating product quantities: ${error.message}`);
+        }
     }
 
     if(event.type === "checkout.session.expired"){
@@ -136,7 +166,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
             }
        })
         const lineTerm = createLineItems(cart)
-        const session = await createSession(lineTerm,order.id.toString(),userId.toString())
+        const session = await createSession(lineTerm,order.id.toString(),cart,userId.toString())
          if(!session.url){
             throw new AppError("Error creating order",500)
          }
@@ -166,13 +196,20 @@ const createLineItems = (CartItem:any[]) => {
 const createSession = async (
     lineItem:Stripe.Checkout.SessionCreateParams.LineItem[],
     orderId:string,
+    cart:any,
     userId:string
 )=>{
+
+     const productDetails = cart.map((cart:any)=>({
+        productId:cart.productId,
+        quantity:cart.quantity
+     }))
      const sessionData = await STRIPE.checkout.sessions.create({
         line_items:lineItem,
         mode:"payment",
         metadata:{
-            orderId
+            orderId,
+            productDetails:JSON.stringify(productDetails)
         },
         success_url: `${FRONTEND_URL}/afterpayment?success=true`,
         cancel_url: `${FRONTEND_URL}/cart?cancelled=true`

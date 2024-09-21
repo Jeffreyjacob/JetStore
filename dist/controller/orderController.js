@@ -22,7 +22,7 @@ const FRONTEND_URL = process.env.FRONTENDURL;
 const STRIPE_ENDPOINT_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const prismaClient = new client_1.PrismaClient();
 const stripeWebookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     let event;
     try {
         const sig = req.headers["stripe-signature"];
@@ -33,20 +33,48 @@ const stripeWebookHandler = (req, res) => __awaiter(void 0, void 0, void 0, func
         return res.status(400).json(`webhook error : ${error.message}`);
     }
     if (event.type === "checkout.session.completed") {
-        const order = yield prismaClient.orders.update({
-            where: {
-                id: +((_a = event.data.object.metadata) === null || _a === void 0 ? void 0 : _a.orderId)
-            },
-            data: {
-                status: client_1.OrderStatus.PAID
+        const session = event.data.object;
+        const productDetail = JSON.parse((_a = session.metadata) === null || _a === void 0 ? void 0 : _a.productDetails);
+        try {
+            // Iterate through the productDetails array and update each product's quantity
+            for (const { productId, quantity } of productDetail) {
+                // Find the product and reduce its quantity
+                const product = yield prismaClient.product.findUnique({
+                    where: {
+                        id: productId
+                    }
+                });
+                if (product) {
+                    yield prismaClient.product.update({
+                        where: {
+                            id: productId
+                        },
+                        data: {
+                            quantityAvaliable: product.quantityAvaliable - quantity
+                        }
+                    });
+                }
             }
-        });
-        res.status(200).json();
+            // Update the order status to PAID
+            yield prismaClient.orders.update({
+                where: {
+                    id: +((_b = event.data.object.metadata) === null || _b === void 0 ? void 0 : _b.orderId)
+                },
+                data: {
+                    status: client_1.OrderStatus.PAID
+                }
+            });
+            res.status(200).json();
+        }
+        catch (error) {
+            console.log(error);
+            res.status(500).json(`Error updating product quantities: ${error.message}`);
+        }
     }
     if (event.type === "checkout.session.expired") {
         const order = yield prismaClient.orders.update({
             where: {
-                id: +((_b = event.data.object.metadata) === null || _b === void 0 ? void 0 : _b.orderId)
+                id: +((_c = event.data.object.metadata) === null || _c === void 0 ? void 0 : _c.orderId)
             },
             data: {
                 status: client_1.OrderStatus.CANCELED
@@ -57,7 +85,7 @@ const stripeWebookHandler = (req, res) => __awaiter(void 0, void 0, void 0, func
     if (event.type === "payment_intent.canceled") {
         const order = yield prismaClient.orders.update({
             where: {
-                id: +((_c = event.data.object.metadata) === null || _c === void 0 ? void 0 : _c.orderId)
+                id: +((_d = event.data.object.metadata) === null || _d === void 0 ? void 0 : _d.orderId)
             },
             data: {
                 status: client_1.OrderStatus.CANCELED
@@ -105,7 +133,7 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
             }
         });
         const lineTerm = createLineItems(cart);
-        const session = yield createSession(lineTerm, order.id.toString(), userId.toString());
+        const session = yield createSession(lineTerm, order.id.toString(), cart, userId.toString());
         if (!session.url) {
             throw new AppError_1.default("Error creating order", 500);
         }
@@ -130,12 +158,17 @@ const createLineItems = (CartItem) => {
     });
     return lineTerm;
 };
-const createSession = (lineItem, orderId, userId) => __awaiter(void 0, void 0, void 0, function* () {
+const createSession = (lineItem, orderId, cart, userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const productDetails = cart.map((cart) => ({
+        productId: cart.productId,
+        quantity: cart.quantity
+    }));
     const sessionData = yield STRIPE.checkout.sessions.create({
         line_items: lineItem,
         mode: "payment",
         metadata: {
-            orderId
+            orderId,
+            productDetails: JSON.stringify(productDetails)
         },
         success_url: `${FRONTEND_URL}/afterpayment?success=true`,
         cancel_url: `${FRONTEND_URL}/cart?cancelled=true`
