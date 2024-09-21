@@ -28,6 +28,7 @@ app.use(cors({
     origin:["http://localhost:3000"],
     credentials:true
 }))
+app.use("/api/order/checkout/webhook",express.raw({type:"*/*"}));
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({policy:"cross-origin"}));
 app.use(morgan("common"));
