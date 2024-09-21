@@ -9,4 +9,5 @@ const asyncHandler_1 = require("../utils/asyncHandler");
 const orderController_1 = require("../controller/orderController");
 const orderRoute = express_1.default.Router();
 orderRoute.route("/createCheckout").post(authMiddleware_1.VerifyToken, (0, asyncHandler_1.AsyncErrorHandler)(orderController_1.createCheckoutSession));
+orderRoute.route("/checkout/webhook").post((0, asyncHandler_1.AsyncErrorHandler)(orderController_1.stripeWebookHandler));
 exports.default = orderRoute;

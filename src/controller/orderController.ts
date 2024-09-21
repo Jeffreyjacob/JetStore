@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
 import Stripe from "stripe";
 import { OrderSchema } from "../schema/OrderSchema";
-import { CartItem, PrismaClient } from "@prisma/client";
+import { PrismaClient,OrderStatus } from "@prisma/client";
 import AppError from "../utils/AppError";
+
+
 
 
 type cartType = {
@@ -28,11 +30,68 @@ type cartType = {
     userId: number
 }
 
+
 const STRIPE = new Stripe(process.env.STRIPE_API_KEY!)
 
 const FRONTEND_URL = process.env.FRONTENDURL as string;
+const STRIPE_ENDPOINT_SECRET=process.env.STRIPE_WEBHOOK_SECRET as string
 
 const prismaClient = new PrismaClient()
+
+
+
+export const stripeWebookHandler = async (req:Request,res:Response)=>{
+    let event;
+
+    try{
+        const sig = req.headers["stripe-signature"]
+        event = STRIPE.webhooks.constructEvent(
+            req.body,
+            sig as string,
+            STRIPE_ENDPOINT_SECRET
+        )
+    }catch(error:any){
+        console.log(error)
+        return res.status(400).json(`webhook error : ${error.message}`)
+    }
+
+    if(event.type === "checkout.session.completed"){
+        const order = await prismaClient.orders.update({
+            where:{
+                id:+event.data.object.metadata?.orderId!
+            },
+            data:{
+              status:OrderStatus.PAID
+            }
+        })
+        res.status(200).json()
+    }
+
+    if(event.type === "checkout.session.expired"){
+        const order = await prismaClient.orders.update({
+            where:{
+                id:+event.data.object.metadata?.orderId!
+            },
+            data:{
+              status:OrderStatus.CANCELED
+            }
+        })
+        res.status(200).json()
+    }
+
+    if(event.type === "payment_intent.canceled"){
+        const order = await prismaClient.orders.update({
+            where:{
+                id:+event.data.object.metadata?.orderId!
+            },
+            data:{
+              status:OrderStatus.CANCELED
+            }
+        })
+        res.status(200).json()
+    }
+}
+
 
 export const createCheckoutSession = async (req: Request, res: Response) => {
     const userId = req.user.id

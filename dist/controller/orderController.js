@@ -12,14 +12,61 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCheckoutSession = void 0;
+exports.createCheckoutSession = exports.stripeWebookHandler = void 0;
 const stripe_1 = __importDefault(require("stripe"));
 const OrderSchema_1 = require("../schema/OrderSchema");
 const client_1 = require("@prisma/client");
 const AppError_1 = __importDefault(require("../utils/AppError"));
 const STRIPE = new stripe_1.default(process.env.STRIPE_API_KEY);
 const FRONTEND_URL = process.env.FRONTENDURL;
+const STRIPE_ENDPOINT_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const prismaClient = new client_1.PrismaClient();
+const stripeWebookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
+    let event;
+    try {
+        const sig = req.headers["stripe-signature"];
+        event = STRIPE.webhooks.constructEvent(req.body, sig, STRIPE_ENDPOINT_SECRET);
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(400).json(`webhook error : ${error.message}`);
+    }
+    if (event.type === "checkout.session.completed") {
+        const order = yield prismaClient.orders.update({
+            where: {
+                id: +((_a = event.data.object.metadata) === null || _a === void 0 ? void 0 : _a.orderId)
+            },
+            data: {
+                status: client_1.OrderStatus.PAID
+            }
+        });
+        res.status(200).json();
+    }
+    if (event.type === "checkout.session.expired") {
+        const order = yield prismaClient.orders.update({
+            where: {
+                id: +((_b = event.data.object.metadata) === null || _b === void 0 ? void 0 : _b.orderId)
+            },
+            data: {
+                status: client_1.OrderStatus.CANCELED
+            }
+        });
+        res.status(200).json();
+    }
+    if (event.type === "payment_intent.canceled") {
+        const order = yield prismaClient.orders.update({
+            where: {
+                id: +((_c = event.data.object.metadata) === null || _c === void 0 ? void 0 : _c.orderId)
+            },
+            data: {
+                status: client_1.OrderStatus.CANCELED
+            }
+        });
+        res.status(200).json();
+    }
+});
+exports.stripeWebookHandler = stripeWebookHandler;
 const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const userId = req.user.id;
     const request = OrderSchema_1.OrderSchema.parse(req.body);
