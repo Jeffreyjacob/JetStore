@@ -22,17 +22,16 @@ cloudinary.config({
 })
 
 const app = express()
-
-app.use(express.json())
 app.use(cors({
     origin:["http://localhost:3000"],
     credentials:true
 }))
-app.use("/api/order/checkout/webhook",express.raw({type:"*/*"}));
 app.use(helmet());
 app.use(helmet.crossOriginResourcePolicy({policy:"cross-origin"}));
 app.use(morgan("common"));
 app.use(cookieParser())
+app.use("/api/order/checkout/webhook",express.raw({type:"*/*"}));
+app.use(express.json())
 
 
 app.use("/api/auth",authRoute)
