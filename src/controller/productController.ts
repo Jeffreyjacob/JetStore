@@ -183,6 +183,34 @@ export const RelatedProductHandler = async (req:Request,res:Response)=>{
        })
 }
 
+export const SearchProductHandler = async (req:Request,res:Response)=>{
+      
+       const searchTerm = req.query.search as string || "" 
+       const page = parseInt(req.query.page as string) || 1
+       const pagesize = parseInt(req.query.pagesize as string) || 9
+       let query = ""
+       const totalProduct = await prismaClient.product.count()
+       const totalPage = Math.ceil(totalProduct/pagesize)
+       if(searchTerm){
+          query = searchTerm
+       }
+       const searchProduct = await prismaClient.product.findMany({
+          where:{name:{
+            contains:query,
+            mode:"insensitive"
+          }},
+          skip:(page - 1) * pagesize,
+          take:pagesize
+       })
+
+       return res.status(200).json({
+          product:searchProduct,
+          currentPage:page,
+          totalProduct,
+          totalPage
+       })
+}
+
 const uploadImages = async (Files:Express.Multer.File[]):Promise<string[]> =>{
     const uploadPromise = Files.map(async(file)=>{
         const base64Image = Buffer.from(file.buffer).toString("base64")

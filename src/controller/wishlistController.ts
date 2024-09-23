@@ -41,3 +41,14 @@ export const AddWishlistHandler = async (req:Request,res:Response)=>{
       }
 }
 
+export const RemoveWishlist = async (req:Request,res:Response)=>{
+   const wishlistId = req.params.id
+    const removeWIshlist = await prismaClient.wishlist.delete({
+        where:{id:+wishlistId},
+        include:{
+           product:true
+        }
+    })
+    return res.status(200).json({wishlist:removeWIshlist,message:"Removed from wishlist!"})
+}
+

@@ -5,7 +5,8 @@ import { AsyncErrorHandler } from "../utils/asyncHandler"
 import { AddReviewHandler, CreateProductHandler, DeleteProductHandler,
      deleteReviewHandler, EditProductHandler, GetAllProduct, GetProductById, 
      GetProductByUserId, GetProductReview, 
-     RelatedProductHandler} from "../controller/productController"
+     RelatedProductHandler,
+     SearchProductHandler} from "../controller/productController"
 
 const productRoute = Router()
 
@@ -22,7 +23,7 @@ productRoute.route("/addReview/:id").post(VerifyToken,AsyncErrorHandler(AddRevie
 productRoute.route("/removeReview/:id").delete(VerifyToken,AsyncErrorHandler(deleteReviewHandler))
 productRoute.route("/getProductReview/:id").get(AsyncErrorHandler(GetProductReview))
 productRoute.route("/relatedProduct/:id").get(AsyncErrorHandler(RelatedProductHandler))
-
+productRoute.route("/searchProduct").get(AsyncErrorHandler(SearchProductHandler))
 
 
 export default productRoute
