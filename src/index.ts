@@ -12,6 +12,7 @@ import {v2 as cloudinary} from "cloudinary"
 import productRoute from "./routes/productRoute";
 import cartRoute from "./routes/cartRoute";
 import orderRoute from "./routes/orderRoute";
+import wishlistRouter from "./routes/wishlistRoute";
 
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use("/api/store",storeRoute)
 app.use("/api/product",productRoute)
 app.use("/api/cart",cartRoute)
 app.use("/api/order",orderRoute)
+app.use("/api/wishlist",wishlistRouter)
 
 app.use(ErrorHandler)
 

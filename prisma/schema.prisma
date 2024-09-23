@@ -49,6 +49,7 @@ model User {
   reviews Review[]
   cart CartItem[]
   order Orders[]
+  wishlist Wishlist[]
 }
 
 model Address {
@@ -101,6 +102,7 @@ model Product {
   reviews Review[]
   cart CartItem[]
   order OrderProduct[]
+  wishlist Wishlist[]
 }
 
 model CartItem {
@@ -150,3 +152,12 @@ model OrderEventStatus {
   updatedAt DateTime @updatedAt
 }
 
+model Wishlist {
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation(fields: [userId],references: [id])
+  productId Int
+  product Product @relation(fields: [productId],references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt 
+}

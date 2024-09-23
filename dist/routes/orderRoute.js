@@ -10,4 +10,7 @@ const orderController_1 = require("../controller/orderController");
 const orderRoute = express_1.default.Router();
 orderRoute.route("/createCheckout").post(authMiddleware_1.VerifyToken, (0, asyncHandler_1.AsyncErrorHandler)(orderController_1.createCheckoutSession));
 orderRoute.route("/checkout/webhook").post((0, asyncHandler_1.AsyncErrorHandler)(orderController_1.stripeWebookHandler));
+orderRoute.route("/sellerOrder").get(authMiddleware_1.VerifyToken, (0, asyncHandler_1.AsyncErrorHandler)(orderController_1.GetSellerOrderHandler));
+orderRoute.route("/buyerOrder").get(authMiddleware_1.VerifyToken, (0, asyncHandler_1.AsyncErrorHandler)(orderController_1.BuyerOrderHandler));
+orderRoute.route("/changeOrderStatus/:id").put(authMiddleware_1.VerifyToken, (0, asyncHandler_1.AsyncErrorHandler)(orderController_1.ChangeOrderStatus));
 exports.default = orderRoute;

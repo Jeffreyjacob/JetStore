@@ -30,7 +30,10 @@ export const SignUpHandler = async(req:Request,res:Response)=>{
         include:{
          address:true,
          store:true,
-         cart:{include:{product:true}}
+         cart:{include:{product:true}},
+         wishlist:{
+            include:{product:true}
+         }
       }
      })
 
@@ -52,7 +55,10 @@ export const LoginHandler = async (req:Request,res:Response)=>{
       include:{
          address:true,
          store:true,
-         cart:{include:{product:true}}
+         cart:{include:{product:true}},
+         wishlist:{
+            include:{product:true}
+         }
       }
    })
 

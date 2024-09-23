@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import Stripe from "stripe";
-import { OrderSchema } from "../schema/OrderSchema";
+import { changeOrderStatusSchema, OrderSchema } from "../schema/OrderSchema";
 import { PrismaClient,OrderStatus } from "@prisma/client";
 import AppError from "../utils/AppError";
 
@@ -212,8 +212,94 @@ const createSession = async (
             productDetails:JSON.stringify(productDetails)
         },
         success_url: `${FRONTEND_URL}/afterpayment?success=true`,
-        cancel_url: `${FRONTEND_URL}/cart?cancelled=true`
+        cancel_url: `${FRONTEND_URL}/cart?cancelled=true`,
+        
      })
 
      return sessionData;
+}
+
+export const GetSellerOrderHandler = async (req:Request,res:Response)=>{
+       const userId = req.user.id
+       const page = parseInt(req.query.page as string) || 1
+       const pageSize = parseInt(req.query.pageSize as string) || 10
+       const totalOrder = await prismaClient.orderProduct.count({
+            where:{ProductOwner:userId}
+       })
+       
+       const totalPages = Math.ceil(totalOrder/pageSize)
+
+    const order = await prismaClient.orderProduct.findMany({
+         where:{ProductOwner:userId},
+         include:{
+            Order:{include:{buyer:true}},
+            product:true
+         },
+         skip:(page - 1) * pageSize,
+         take:pageSize  
+    })
+
+    return res.status(200).json({
+        order,
+        currentPage:page,
+        totalPages,
+        totalOrder
+    })
+
+}
+
+export const BuyerOrderHandler = async (req:Request,res:Response)=>{
+      const userId = req.user.id
+
+      const order = await prismaClient.orderProduct.findMany({
+         where:{
+            Order:{
+                buyerId:userId
+            }
+         },
+         include:{
+            product:{
+                include:{store:true}
+            },
+            Order:true
+         }
+      })
+
+      return res.status(200).json({order})
+}
+
+
+export const ChangeOrderStatus = async (req:Request,res:Response)=>{
+      const orderId = req.params.id
+      const request = changeOrderStatusSchema.parse(req.body)
+      const {status} = request
+
+      const order = await prismaClient.orders.update({
+          where:{id:+orderId},
+          data:{
+            status:status
+          }
+      })
+
+      return res.status(200).json({message:"Order status updated!"})
+}
+
+export const DeleteOrderHandler = async (req:Request,res:Response)=>{
+        const orderId = req.params.id
+
+        return await prismaClient.$transaction(async(tx)=>{
+            await tx.orderProduct.deleteMany({
+                where: { orderId:+orderId }, // Assuming orderId is the foreign key in orderProduct
+              });
+              await tx.orderEventStatus.deleteMany({
+                  where:{orderId:+orderId}
+              })
+              // Then, delete the order itself
+              await tx.orders.delete({
+                where: { id:+orderId },
+              });
+
+            
+            return res.status(200).json({message:"Order deleted!"})
+        }) 
 }

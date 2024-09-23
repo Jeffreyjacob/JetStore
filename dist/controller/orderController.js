@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCheckoutSession = exports.stripeWebookHandler = void 0;
+exports.ChangeOrderStatus = exports.BuyerOrderHandler = exports.GetSellerOrderHandler = exports.createCheckoutSession = exports.stripeWebookHandler = void 0;
 const stripe_1 = __importDefault(require("stripe"));
 const OrderSchema_1 = require("../schema/OrderSchema");
 const client_1 = require("@prisma/client");
@@ -175,3 +175,56 @@ const createSession = (lineItem, orderId, cart, userId) => __awaiter(void 0, voi
     });
     return sessionData;
 });
+const GetSellerOrderHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const pageSize = parseInt(req.query.pageSize) || 10;
+    const totalOrder = yield prismaClient.orderProduct.count({
+        where: { ProductOwner: userId }
+    });
+    const totalPages = Math.ceil(totalOrder / pageSize);
+    const order = yield prismaClient.orderProduct.findMany({
+        where: { ProductOwner: userId },
+        include: {
+            Order: { include: { buyer: true } },
+            product: true
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize
+    });
+    return res.status(200).json({
+        order,
+        currentPage: page,
+        totalPages,
+        totalOrder
+    });
+});
+exports.GetSellerOrderHandler = GetSellerOrderHandler;
+const BuyerOrderHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.user.id;
+    const order = yield prismaClient.orders.findMany({
+        where: { buyerId: userId },
+        include: {
+            Product: {
+                include: {
+                    product: { include: { store: true } }
+                }
+            }
+        }
+    });
+    return res.status(200).json({ order });
+});
+exports.BuyerOrderHandler = BuyerOrderHandler;
+const ChangeOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const orderId = req.params.id;
+    const request = OrderSchema_1.changeOrderStatusSchema.parse(req.body);
+    const { status } = request;
+    const order = yield prismaClient.orders.update({
+        where: { id: +orderId },
+        data: {
+            status: status
+        }
+    });
+    return res.status(200).json({ message: "Order status updated!" });
+});
+exports.ChangeOrderStatus = ChangeOrderStatus;
