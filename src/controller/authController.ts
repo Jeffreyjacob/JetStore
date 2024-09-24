@@ -38,10 +38,10 @@ export const SignUpHandler = async(req:Request,res:Response)=>{
      })
 
     const token = GenerateToken(user)
-    GenerateCookie(token,res)
     return res.status(201).json({
       ...user,
-      password:undefined
+      password:undefined,
+      token
     })
 }
 
@@ -73,10 +73,10 @@ export const LoginHandler = async (req:Request,res:Response)=>{
    }
 
    const token = GenerateToken(user)
-   GenerateCookie(token,res)
    return res.status(200).json({
       ...user,
-      password:undefined
+      password:undefined,
+      token
    })
       
 }
