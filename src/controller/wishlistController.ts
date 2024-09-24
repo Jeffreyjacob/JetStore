@@ -20,6 +20,9 @@ export const AddWishlistHandler = async (req:Request,res:Response)=>{
       if(ExistingWishlist){
          const removeWIshlist = await prismaClient.wishlist.delete({
              where:{id:ExistingWishlist.id},
+             include:{
+                product:true
+             }
          })
 
          return res.status(200).json({wishlist:removeWIshlist,message:"Removed from wishlist!"})
@@ -28,6 +31,9 @@ export const AddWishlistHandler = async (req:Request,res:Response)=>{
              data:{
                  userId:userId,
                  productId:request.productId 
+             },
+             include:{
+                product:true
              }
          })
 
@@ -38,7 +44,10 @@ export const AddWishlistHandler = async (req:Request,res:Response)=>{
 export const RemoveWishlist = async (req:Request,res:Response)=>{
    const wishlistId = req.params.id
     const removeWIshlist = await prismaClient.wishlist.delete({
-        where:{id:+wishlistId}
+        where:{id:+wishlistId},
+        include:{
+           product:true
+        }
     })
     return res.status(200).json({wishlist:removeWIshlist,message:"Removed from wishlist!"})
 }
