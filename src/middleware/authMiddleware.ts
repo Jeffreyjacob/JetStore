@@ -15,12 +15,13 @@ const prismaClient = new PrismaClient()
 
 export const VerifyToken = async (req:Request,res:Response,next:NextFunction)=>{
      try{
-        const token = req.cookies.token
+      const token = JSON.parse(req.cookies.token)
+      console.log(token)
         if(!token){
           throw new AppError("token is required",401)
         }
   
-        const decoded:{id:number} =  await jwt.verify(token,process.env.JWT_SECRET!) as any
+        const decoded:{id:number} =  await jwt.verify(token.token,process.env.JWT_SECRET!) as any
         
         const user = await prismaClient.user.findFirst({
            where:{id:decoded.id}
