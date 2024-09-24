@@ -13,10 +13,7 @@ export const AuthUserHandler = async (req:Request,res:Response)=>{
         include:{
             address:true,
             store:true,
-            cart:{include:{product:true}},
-            wishlist:{
-              include:{product:true}
-            }
+            cart:{include:{product:true}}
         }
       })
      
