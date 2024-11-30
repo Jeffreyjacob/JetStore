@@ -28,7 +28,7 @@ export const CreateStoreHandler = async(req:Request,res:Response)=>{
 export const GetStoreHandler = async (req:Request,res:Response)=>{
     const userId = req.user.id
 
-    const store = await prismaClient.store.findFirstOrThrow({
+    const store = await prismaClient.store.findFirst({
         where:{storeOwnerId:userId},
         include:{
             product:true
