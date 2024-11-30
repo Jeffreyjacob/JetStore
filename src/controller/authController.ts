@@ -71,8 +71,9 @@ export const LoginHandler = async (req:Request,res:Response)=>{
    if(!matchPassword){
       throw new AppError("invalid credentials",401)
    }
-
+ 
    const token = GenerateToken(user)
+   console.log(token)
    return res.status(200).json({
       ...user,
       password:undefined,
